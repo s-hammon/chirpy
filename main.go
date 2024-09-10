@@ -9,14 +9,15 @@ func main() {
 	const fpathRoot = "."
 	const port = "8080"
 
+	cfg := &apiConfig{
+		fserverHits: 0,
+	}
+
 	mux := http.NewServeMux()
-	mux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
-	mux.Handle("/assets", http.StripPrefix("/assets", http.FileServer(http.Dir("assets"))))
-	mux.Handle("/healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	}))
+	mux.Handle("/app/", cfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(fpathRoot)))))
+	mux.HandleFunc("/healthz", handleReadiness)
+	mux.HandleFunc("/metrics", cfg.handleMetrics)
+	mux.HandleFunc("/reset", cfg.handleResetMetrics)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

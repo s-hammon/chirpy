@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/s-hammon/chirpy/internal/database"
 )
 
 type apiConfig struct {
 	fserverHits int
+	DB          *database.DB
 }
 
 func (a *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -34,4 +37,5 @@ func (a *apiConfig) handleMetrics(w http.ResponseWriter, r *http.Request) {
 func (a *apiConfig) handleResetMetrics(w http.ResponseWriter, r *http.Request) {
 	a.fserverHits = 0
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Reset hits to 0"))
 }

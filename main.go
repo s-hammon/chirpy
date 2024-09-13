@@ -1,17 +1,27 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/s-hammon/chirpy/internal/database"
 )
+
+const dbPath = "database.json"
 
 func main() {
 	const fpathRoot = "."
 	const port = "8080"
 
-	db, err := database.NewDB("database.json")
+	dbg := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+	if *dbg {
+		os.Remove(dbPath)
+	}
+
+	db, err := database.NewDB(dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -10,6 +10,7 @@ import (
 type apiConfig struct {
 	fserverHits int
 	DB          *database.DB
+	jwtSecret   string
 }
 
 func (a *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {

@@ -8,13 +8,15 @@ import (
 )
 
 type UserRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email            string `json:"email"`
+	Password         string `json:"password"`
+	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 
 type UserResponse struct {
 	ID    int    `json:"id"`
 	Email string `json:"email"`
+	Token string `json:"token"`
 }
 
 func (a *apiConfig) handleNewUser(w http.ResponseWriter, r *http.Request) {
@@ -28,6 +30,7 @@ func (a *apiConfig) handleNewUser(w http.ResponseWriter, r *http.Request) {
 	pwd, err := bcrypt.GenerateFromPassword([]byte(body.Password), 1)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "couldn't create user")
+		return
 	}
 
 	user, err := a.DB.CreateUser(body.Email, pwd)

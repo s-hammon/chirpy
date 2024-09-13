@@ -76,6 +76,29 @@ func (db *DB) GetUsers() ([]User, error) {
 	return users, nil
 }
 
+func (db *DB) UpdateUser(id int, email string, pwd []byte) (User, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		fmt.Printf("error creating database: %v", err)
+		return User{}, err
+	}
+
+	updatedUser := User{
+		ID:       id,
+		Email:    email,
+		Password: pwd,
+	}
+
+	dbStructure.Users[id] = updatedUser
+
+	if err = db.writeDB(dbStructure); err != nil {
+		fmt.Printf("error writing to database: %v", err)
+		return User{}, err
+	}
+
+	return updatedUser, nil
+}
+
 func (db *DB) CreateUser(email string, pwd []byte) (User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {

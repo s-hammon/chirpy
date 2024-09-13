@@ -6,12 +6,16 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/s-hammon/chirpy/internal/database"
 )
 
 const dbPath = "database.json"
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("error loading .env file")
+	}
 	const fpathRoot = "."
 	const port = "8080"
 
@@ -29,6 +33,7 @@ func main() {
 	cfg := &apiConfig{
 		fserverHits: 0,
 		DB:          db,
+		jwtSecret:   os.Getenv("JWT_SECRET"),
 	}
 
 	mux := http.NewServeMux()
@@ -42,6 +47,7 @@ func main() {
 	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.handleGetChirpByID)
 
 	mux.HandleFunc("POST /api/users", cfg.handleNewUser)
+	mux.HandleFunc("PUT /api/users", cfg.handleUpdateUser)
 	mux.HandleFunc("POST /api/login", cfg.handleLogin)
 
 	srv := &http.Server{

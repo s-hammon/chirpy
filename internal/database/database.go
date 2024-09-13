@@ -24,8 +24,9 @@ type Chirp struct {
 }
 
 type User struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
+	ID       int    `json:"id"`
+	Email    string `json:"email"`
+	Password []byte `json:"password"`
 }
 
 func NewDB(path string) (*DB, error) {
@@ -61,17 +62,38 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 	return chirp, nil
 }
 
-func (db *DB) CreateUser(email string) (User, error) {
+func (db *DB) GetUsers() ([]User, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]User, 0, len(dbStructure.Users))
+	for _, user := range dbStructure.Users {
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func (db *DB) CreateUser(email string, pwd []byte) (User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		fmt.Printf("error creating database: %v", err)
 		return User{}, err
 	}
 
+	for _, user := range dbStructure.Users {
+		if email == user.Email {
+			return User{}, errors.New("user with that email already exists")
+		}
+	}
+
 	id := len(dbStructure.Users) + 1
 	user := User{
-		ID:    id,
-		Email: email,
+		ID:       id,
+		Email:    email,
+		Password: pwd,
 	}
 	dbStructure.Users[id] = user
 

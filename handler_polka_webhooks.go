@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+
+	"github.com/s-hammon/chirpy/internal/auth"
 )
 
 const userUpgraded = "user.upgraded"
@@ -16,6 +18,12 @@ func (a *apiConfig) handlePolkaWebhookUpgrade(w http.ResponseWriter, r *http.Req
 	type parameters struct {
 		Event string `json:"event"`
 		Data  Data
+	}
+
+	token, err := auth.GetToken("ApiKey", r.Header)
+	if err != nil || token != a.polkaKey {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
 	}
 
 	params := parameters{}

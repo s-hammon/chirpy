@@ -8,7 +8,7 @@ import (
 )
 
 func (a *apiConfig) handleDeleteChirpByID(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.GetBearerToken(r.Header)
+	token, err := auth.GetToken("Bearer", r.Header)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, "couldn't parse JWT")
 		return

@@ -21,7 +21,7 @@ func (a *apiConfig) handleCreateChirp(w http.ResponseWriter, r *http.Request) {
 		Body string `json:"body"`
 	}
 
-	token, err := auth.GetBearerToken(r.Header)
+	token, err := auth.GetToken("Bearer", r.Header)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, err.Error())
 		return

@@ -12,7 +12,7 @@ func (a *apiConfig) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		Token string `json:"token"`
 	}
 
-	authToken, err := auth.GetBearerToken(r.Header)
+	authToken, err := auth.GetToken("Bearer", r.Header)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, err.Error())
 		return

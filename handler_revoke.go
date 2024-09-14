@@ -7,7 +7,7 @@ import (
 )
 
 func (a *apiConfig) handleRevoke(w http.ResponseWriter, r *http.Request) {
-	authToken, err := auth.GetBearerToken(r.Header)
+	authToken, err := auth.GetToken("Bearer", r.Header)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, err.Error())
 		return

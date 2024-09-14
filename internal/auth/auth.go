@@ -77,14 +77,14 @@ func ValidateJWT(tokenString, tokenSecret string) (string, error) {
 	return userID, err
 }
 
-func GetBearerToken(headers http.Header) (string, error) {
+func GetToken(tokenType string, headers http.Header) (string, error) {
 	authHeader := headers.Get("Authorization")
 	if authHeader == "" {
 		return "", ErrMissingAuthHeader
 	}
 
 	splitAuth := strings.Split(authHeader, " ")
-	if len(splitAuth) < 2 || splitAuth[0] != string("Bearer") {
+	if len(splitAuth) < 2 || splitAuth[0] != string(tokenType) {
 		return "", errors.New("invalid auth header")
 	}
 

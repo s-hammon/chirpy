@@ -16,7 +16,7 @@ func (a *apiConfig) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	type response struct {
 		User
 	}
-	token, err := auth.GetBearerToken(r.Header)
+	token, err := auth.GetToken("Bearer", r.Header)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, err.Error())
 		return

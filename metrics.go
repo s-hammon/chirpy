@@ -11,6 +11,7 @@ type apiConfig struct {
 	fserverHits int
 	DB          *database.DB
 	jwtSecret   string
+	polkaKey    string
 }
 
 func (a *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {

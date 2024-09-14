@@ -34,6 +34,7 @@ func main() {
 		fserverHits: 0,
 		DB:          db,
 		jwtSecret:   os.Getenv("JWT_SECRET"),
+		polkaKey:    os.Getenv("POLKA_API_KEY"),
 	}
 
 	mux := http.NewServeMux()

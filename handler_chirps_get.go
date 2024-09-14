@@ -7,7 +7,19 @@ import (
 )
 
 func (a *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
-	records, err := a.DB.GetChirps()
+	authorID := -1
+	reqAuthorId := r.URL.Query().Get("author_id")
+	if reqAuthorId != "" {
+		intID, err := strconv.Atoi(reqAuthorId)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "author_id must be an integer")
+			return
+		}
+
+		authorID = intID
+	}
+
+	records, err := a.DB.GetChirps(authorID)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Couldn't retrieve chirps")
 		return

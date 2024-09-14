@@ -18,8 +18,10 @@ func (a *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	type response struct {
 		User
-		Token string `json:"token"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
+
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	if err := decoder.Decode(&params); err != nil {
@@ -49,11 +51,23 @@ func (a *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "couldn't create refresh token")
+		return
+	}
+
+	expiresAt := time.Now().UTC().Add(time.Hour * 24 * 60)
+	if err = a.DB.CreateRefreshToken(user.ID, refreshToken, expiresAt); err != nil {
+		respondError(w, http.StatusInternalServerError, "couldn't write refresh token")
+	}
+
 	respondJSON(w, http.StatusOK, response{
 		User: User{
 			ID:    user.ID,
 			Email: user.Email,
 		},
-		Token: token,
+		Token:        token,
+		RefreshToken: refreshToken,
 	})
 }

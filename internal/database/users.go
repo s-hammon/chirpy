@@ -2,7 +2,6 @@ package database
 
 import (
 	"errors"
-	"fmt"
 )
 
 var ErrExists = errors.New("already exists")
@@ -13,10 +12,9 @@ type User struct {
 	Password string `json:"password"`
 }
 
-func (db *DB) CreateUser(email string, pwd string) (User, error) {
+func (db *DB) CreateUser(email, pwd string) (User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
-		fmt.Printf("error creating database: %v", err)
 		return User{}, err
 	}
 
@@ -35,7 +33,6 @@ func (db *DB) CreateUser(email string, pwd string) (User, error) {
 	dbStructure.Users[id] = user
 
 	if err = db.writeDB(dbStructure); err != nil {
-		fmt.Printf("error writing to database: %v", err)
 		return User{}, err
 	}
 
@@ -71,7 +68,7 @@ func (db *DB) GetUserByEmail(email string) (User, error) {
 	return User{}, ErrNotExist
 }
 
-func (db *DB) UpdateUser(id int, email string, pwd string) (User, error) {
+func (db *DB) UpdateUser(id int, email, pwd string) (User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		return User{}, err

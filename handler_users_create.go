@@ -4,43 +4,47 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/s-hammon/chirpy/internal/auth"
 )
 
-type UserRequest struct {
-	Email            string `json:"email"`
-	Password         string `json:"password"`
-	ExpiresInSeconds int    `json:"expires_in_seconds"`
-}
-
-type UserResponse struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
-	Token string `json:"token"`
+type User struct {
+	ID       int    `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"-"`
 }
 
 func (a *apiConfig) handleNewUser(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+	type response struct {
+		User
+	}
+
 	decoder := json.NewDecoder(r.Body)
-	body := UserRequest{}
-	if err := decoder.Decode(&body); err != nil {
+	params := parameters{}
+	if err := decoder.Decode(&params); err != nil {
 		respondError(w, http.StatusInternalServerError, "couldn't create user")
 		return
 	}
 
-	pwd, err := bcrypt.GenerateFromPassword([]byte(body.Password), 1)
+	pwd, err := auth.HashPasword(params.Password)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "couldn't create user")
 		return
 	}
 
-	user, err := a.DB.CreateUser(body.Email, pwd)
+	user, err := a.DB.CreateUser(params.Email, pwd)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "couldn't create user")
 		return
 	}
 
-	respondJSON(w, http.StatusCreated, UserResponse{
-		ID:    user.ID,
-		Email: user.Email,
+	respondJSON(w, http.StatusCreated, response{
+		User: User{
+			ID:    user.ID,
+			Email: user.Email,
+		},
 	})
 }

@@ -7,17 +7,17 @@ import (
 )
 
 func (a *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
-	dbChirps, err := a.DB.GetChirps()
+	records, err := a.DB.GetChirps()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Couldn't retrieve chirps")
 		return
 	}
 
-	chirps := []ChirpClean{}
-	for _, dbChirp := range dbChirps {
-		chirps = append(chirps, ChirpClean{
-			ID:   dbChirp.ID,
-			Body: dbChirp.Body,
+	chirps := []Chirp{}
+	for _, r := range records {
+		chirps = append(chirps, Chirp{
+			ID:   r.ID,
+			Body: r.Body,
 		})
 	}
 
@@ -29,34 +29,21 @@ func (a *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiConfig) handleGetChirpByID(w http.ResponseWriter, r *http.Request) {
-	dbChirps, err := a.DB.GetChirps()
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, "couldn't retrieve chirps")
-		return
-	}
-
 	chirpID := r.PathValue("chirpID")
-	if chirpID == "" {
-		respondError(w, http.StatusBadRequest, "must provide id")
-		return
-	}
 	id, err := strconv.Atoi(chirpID)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "id must be an integer")
+		return
 	}
 
-	chirp := ChirpClean{}
-	for _, ch := range dbChirps {
-		if ch.ID == id {
-			chirp.ID = ch.ID
-			chirp.Body = ch.Body
-		}
-
+	chirp, err := a.DB.GetChirp(id)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "couldn't get chirp")
+		return
 	}
 
-	if chirp.ID != 0 {
-		respondJSON(w, http.StatusOK, chirp)
-	} else {
-		respondError(w, http.StatusNotFound, "couldn't find chirp")
-	}
+	respondJSON(w, http.StatusOK, Chirp{
+		ID:   chirp.ID,
+		Body: chirp.Body,
+	})
 }

@@ -2,61 +2,63 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 )
 
-type ChirpBody struct {
-	Body string `json:"body"`
-}
-
-type ChirpError struct {
-	Error string `json:"error"`
-}
-
-type ChirpAck struct {
-	Valid bool `json:"valid"`
-}
-
-type ChirpClean struct {
+type Chirp struct {
 	ID   int    `json:"id"`
 	Body string `json:"body"`
 }
 
-func (a *apiConfig) handleValidateChirp(w http.ResponseWriter, r *http.Request) {
+func (a *apiConfig) handleCreateChirp(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Body string `json:"body"`
+	}
+
 	decoder := json.NewDecoder(r.Body)
-	body := ChirpBody{}
-	if err := decoder.Decode(&body); err != nil {
-		respondError(w, http.StatusInternalServerError, "Couldn't read parameters")
+	params := parameters{}
+	if err := decoder.Decode(&params); err != nil {
+		respondError(w, http.StatusInternalServerError, "couldn't read parameters")
 		return
 	}
 
-	const maxLength = 140
-	if len(body.Body) > maxLength {
-		respondError(w, http.StatusBadRequest, "Chirp is too long")
-		return
-	}
-	cleanedChirp := censorProfanity(body.Body)
-
-	chirp, err := a.DB.CreateChirp(cleanedChirp)
+	cleaned, err := validateChirp(params.Body)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Couldn't create chirp")
+		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusCreated, ChirpClean{
+	chirp, err := a.DB.CreateChirp(cleaned)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "couldn't create chirp")
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, Chirp{
 		ID:   chirp.ID,
 		Body: chirp.Body,
 	})
 }
 
-func censorProfanity(msg string) string {
+func validateChirp(body string) (string, error) {
+	const maxLength = 140
+	if len(body) > maxLength {
+		return "", errors.New("chirp is too long")
+	}
+
 	naughtyWords := map[string]struct{}{
 		"kerfuffle": {},
 		"sharbert":  {},
 		"fornax":    {},
 	}
 
+	cleaned := censorProfanity(body, naughtyWords)
+	return cleaned, nil
+}
+
+func censorProfanity(msg string, naughtyWords map[string]struct{}) string {
 	words := strings.Split(msg, " ")
 	for i, word := range words {
 		lowered := strings.ToLower(word)

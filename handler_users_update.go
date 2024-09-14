@@ -4,84 +4,59 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/s-hammon/chirpy/internal/auth"
 )
 
 func (a *apiConfig) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
-	dbUsers, err := a.DB.GetUsers()
+	type parameters struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+	type response struct {
+		User
+	}
+	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "couldn't login")
+		respondError(w, http.StatusUnauthorized, "couldn't find JWT")
 		return
 	}
 
-	auth := r.Header.Get("Authorization")
-
-	if auth == "" {
-		respondError(w, http.StatusUnauthorized, "invalid token")
-		return
-	}
-
-	tokenString, ok := strings.CutPrefix(auth, "Bearer ")
-	if !ok {
-		respondError(w, http.StatusUnauthorized, "invalid token header")
-	}
-
-	claims := &jwt.RegisteredClaims{}
-	if _, err = jwt.ParseWithClaims(
-		tokenString,
-		claims,
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(a.jwtSecret), nil
-		}); err != nil {
-		respondError(w, http.StatusUnauthorized, "invalid token")
-		return
-	}
-
-	if claims.Issuer != "chirpy" {
-		respondError(w, http.StatusUnauthorized, "invalid token")
-		return
-	}
-
-	if claims.ExpiresAt.UTC().Before(time.Now().Truncate(time.Millisecond).UTC()) {
-		respondError(w, http.StatusUnauthorized, "token has expired")
-	}
-
-	userId, err := claims.GetSubject()
+	subject, err := auth.ValidateJWT(token, a.jwtSecret)
 	if err != nil {
-		respondError(w, http.StatusUnauthorized, "invalid token")
+		respondError(w, http.StatusUnauthorized, "couldn't validate JWT")
 		return
 	}
-	id, _ := strconv.Atoi(userId)
 
 	decoder := json.NewDecoder(r.Body)
-	body := UserRequest{}
-	if err := decoder.Decode(&body); err != nil {
+	params := parameters{}
+	if err := decoder.Decode(&params); err != nil {
 		respondError(w, http.StatusInternalServerError, "couldn't parse request")
 		return
 	}
 
-	for _, user := range dbUsers {
-		if id == user.ID {
-			pwd, err := bcrypt.GenerateFromPassword([]byte(body.Password), 1)
-			if err != nil {
-				respondError(w, http.StatusInternalServerError, "couldn't update user")
-				return
-			}
-			updated, err := a.DB.UpdateUser(id, body.Email, pwd)
-			if err != nil {
-				respondError(w, http.StatusInternalServerError, "couldn't update user")
-				return
-			}
-
-			respondJSON(w, http.StatusOK, &UserResponse{
-				ID:    id,
-				Email: updated.Email,
-			})
-		}
+	hashedPwd, err := auth.HashPasword(params.Password)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "couldn't hash password")
+		return
 	}
 
+	userID, err := strconv.Atoi(subject)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "couldn't parse user ID")
+		return
+	}
+
+	user, err := a.DB.UpdateUser(userID, params.Email, hashedPwd)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "couldn't update user")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, response{
+		User: User{
+			ID:    user.ID,
+			Email: user.Email,
+		},
+	})
 }

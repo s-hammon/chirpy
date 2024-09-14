@@ -19,6 +19,11 @@ func (a *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
 		authorID = intID
 	}
 
+	sortQuery := r.URL.Query().Get("sort")
+	if sortQuery == "" {
+		sortQuery = "asc"
+	}
+
 	records, err := a.DB.GetChirps(authorID)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Couldn't retrieve chirps")
@@ -35,6 +40,9 @@ func (a *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sort.Slice(chirps, func(i, j int) bool {
+		if sortQuery == "desc" {
+			return chirps[i].ID > chirps[j].ID
+		}
 		return chirps[i].ID < chirps[j].ID
 	})
 

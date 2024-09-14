@@ -4,17 +4,38 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/s-hammon/chirpy/internal/auth"
 )
 
 type Chirp struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
+	ID       int    `json:"id"`
+	AuthorID int    `json:"author_id"`
+	Body     string `json:"body"`
 }
 
 func (a *apiConfig) handleCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
+	}
+
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	subject, err := auth.ValidateJWT(token, a.jwtSecret)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "couldn't validate JWT")
+		return
+	}
+
+	authorID, err := strconv.Atoi(subject)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "couldn't extract user ID from JWT")
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -30,15 +51,16 @@ func (a *apiConfig) handleCreateChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chirp, err := a.DB.CreateChirp(cleaned)
+	chirp, err := a.DB.CreateChirp(authorID, cleaned)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "couldn't create chirp")
 		return
 	}
 
 	respondJSON(w, http.StatusCreated, Chirp{
-		ID:   chirp.ID,
-		Body: chirp.Body,
+		ID:       chirp.ID,
+		AuthorID: chirp.AuthorID,
+		Body:     chirp.Body,
 	})
 }
 

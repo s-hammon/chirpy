@@ -1,11 +1,16 @@
 package database
 
+import "errors"
+
+var ErrPermission = errors.New("permission denied")
+
 type Chirp struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
+	ID       int    `json:"id"`
+	AuthorID int    `json:"author_id"`
+	Body     string `json:"body"`
 }
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
+func (db *DB) CreateChirp(authorID int, body string) (Chirp, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		return Chirp{}, err
@@ -13,8 +18,9 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 
 	id := len(dbStructure.Chirps) + 1
 	chirp := Chirp{
-		ID:   id,
-		Body: body,
+		ID:       id,
+		AuthorID: authorID,
+		Body:     body,
 	}
 	dbStructure.Chirps[id] = chirp
 
@@ -51,4 +57,28 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	}
 
 	return chirps, nil
+}
+
+func (db *DB) DeleteChirpByID(chirpId, authorID int) error {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+
+	chirp, ok := dbStructure.Chirps[chirpId]
+	if !ok {
+		return errors.New("chirp not found")
+	}
+
+	if chirp.AuthorID == authorID {
+		delete(dbStructure.Chirps, chirpId)
+
+		if err = db.writeDB(dbStructure); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return ErrPermission
 }
